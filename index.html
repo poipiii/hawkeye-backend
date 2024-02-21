@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Upload and Processing</title>
+    <style>
+      .container {
+        text-align: center;
+        margin-top: 50px;
+      }
+      img {
+        max-width: 400px;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Image Upload and Processing</h1>
+      <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" id="imageInput" accept="image/*" required />
+        <button type="submit">Upload Image</button>
+      </form>
+      <div id="imagesContainer"></div>
+    </div>
+
+    <script>
+      document
+        .getElementById("uploadForm")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
+          var formData = new FormData();
+          var fileInput = document.getElementById("imageInput");
+          formData.append("image", fileInput.files[0]);
+
+          fetch("/upload", {
+            method: "POST",
+            body: formData,
+          })
+            .then((response) => {
+              if (response.ok) {
+                document.getElementById("uploadForm").reset(); // Reset the form after successful upload
+                loadImages();
+                return response.blob();
+              }
+              throw new Error("Network response was not ok.");
+            })
+            .catch((error) => {
+              console.error(
+                "There has been a problem with your fetch operation:",
+                error
+              );
+            });
+        });
+
+      function loadImages() {
+        fetch("/images")
+          .then((response) => {
+            if (response.ok) {
+              return response.json();
+            }
+            throw new Error("Network response was not ok.");
+          })
+          .then((images) => {
+            var imagesContainer = document.getElementById("imagesContainer");
+            imagesContainer.innerHTML = ""; // Clear previous images
+            images.forEach((image) => {
+              var imgElement = document.createElement("img");
+              imgElement.src = image.url;
+              imgElement.alt = image.filename;
+              imgElement.style.maxWidth = "400px";
+              imgElement.style.marginTop = "20px";
+              imagesContainer.appendChild(imgElement);
+            });
+          })
+          .catch((error) => {
+            console.error(
+              "There has been a problem with your fetch operation:",
+              error
+            );
+          });
+      }
+
+      // Load images on page load
+      window.addEventListener("load", loadImages);
+    </script>
+  </body>
+</html>

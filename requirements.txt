@@ -1,2 +1,5 @@
 flask==3.0.2
 pillow==10.2.0
+onnxruntime
+opencv-python
+numpy
