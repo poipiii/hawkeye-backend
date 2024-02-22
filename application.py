@@ -6,7 +6,7 @@ from flask import Flask, request, Response, jsonify, send_file
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
 
 UPLOAD_FOLDER_BEFORE = 'before'  # Folder where uploaded images are stored initially
 UPLOAD_FOLDER_AFTER = 'after'  # Folder where processed images will be stored
@@ -41,7 +41,7 @@ def process_image(image_path, output_folder):
     # Save the processed images into the "after" folder
     cv2.imwrite(output_folder, ort_outs)
 
-# Route to upload image
+# Route to upload image 
 @app.route('/upload', methods=['POST'])
 def upload_image():
     if request.method == 'POST':
@@ -56,7 +56,8 @@ def upload_image():
         filename = os.path.splitext(image.filename)[0]
         processed_image_path = os.path.join(app.config['UPLOAD_FOLDER_AFTER'], f"{filename}_processed.png")
         process_image(image_path, processed_image_path)
-        return 'File uploaded successfully and processed', 200
+    
+        return send_file(processed_image_path)
     return 'Invalid request', 400
 
 # Route to fetch processed images
