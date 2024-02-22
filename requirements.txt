@@ -3,3 +3,4 @@ pillow==10.2.0
 onnxruntime
 opencv-python
 numpy
+flask_cors
