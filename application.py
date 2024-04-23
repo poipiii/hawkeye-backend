@@ -10,21 +10,35 @@ CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
 
 UPLOAD_FOLDER_BEFORE = 'before'  # Folder where uploaded images are stored initially
 UPLOAD_FOLDER_AFTER = 'after'  # Folder where processed images will be stored
-
+MODEL_FOLDER = "models"  # Folder where the model is stored
 app.config['UPLOAD_FOLDER_BEFORE'] = UPLOAD_FOLDER_BEFORE
 app.config['UPLOAD_FOLDER_AFTER'] = UPLOAD_FOLDER_AFTER
+app.config['MODEL_FOLDER'] = MODEL_FOLDER
 
 # Define the path to the "before" and "after" folders
 BEFORE_FOLDER_PATH = os.path.join(os.getcwd(), UPLOAD_FOLDER_BEFORE)
 AFTER_FOLDER_PATH = os.path.join(os.getcwd(), UPLOAD_FOLDER_AFTER)
+MODEL_FOLDER_PATH = os.path.join(os.getcwd(), MODEL_FOLDER)
+
+
+def map_models():
+    models ={}
+    for model in os.listdir(MODEL_FOLDER_PATH):
+        if model.endswith('.onnx'):
+            models[model.split(".")[0]] = os.path.join(MODEL_FOLDER_PATH, model)
+    return models
 
 # Function to process uploaded image
-def process_image(image_path, output_folder):
+def process_image(image_path, output_folder,model = "run_cugan"):
     # Initialize onnxruntime session
-    ort_session = onnxruntime.InferenceSession("run_cugan.onnx", providers=["CPUExecutionProvider"])
-    
+    all_models = map_models()
+    print("Models available: ", all_models)
+    model_path = all_models[model]
+    ort_session = onnxruntime.InferenceSession(model_path, providers=['TensorrtExecutionProvider', 'CUDAExecutionProvider',"CPUExecutionProvider"])
+    print("Onnxruntime session initialized")
     # Load the image
     img = cv2.imread(image_path)
+    print("Image loaded")
     # Resize the image
     img = cv2.resize(img, (128, 128), interpolation=cv2.INTER_CUBIC)
     # Normalize pixel values
@@ -33,8 +47,10 @@ def process_image(image_path, output_folder):
     img = img.astype(np.float32)
     # Transpose dimensions
     img = img.transpose(2, 0, 1)[None, :, :, :]
+    print("Image processed")
     # Send to onnxruntime
     ort_inputs = {"input": img}
+    print("Upscaling image")
     ort_outs = ort_session.run(None, ort_inputs)[0]
     # Back to height x width x 3 array from 0 to 255
     ort_outs = ort_outs[0].transpose(1, 2, 0) * 255
